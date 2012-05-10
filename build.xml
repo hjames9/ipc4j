@@ -1,0 +1,73 @@
+<project name="ipc4j" default="cbuild" basedir=".">
+    <property file="build.properties" />
+	<property name="src.dir" location="src"/>
+	<property name="test.dir" location="test"/>
+	<property name="build.dir" location="build"/>
+    <property name="lib.dir" location="../common/libs" />
+	<property name="jni.dir" location="jni"/>
+	<property name="doc.dir" location="build/doc"/>
+	
+    <path id="project.classpath">
+        <fileset dir="${lib.dir}">
+            <include name="**/*.jar" />
+        </fileset>
+    </path>
+
+    <target name="prepare">
+        <mkdir dir="${build.dir}/classes"/>
+    </target>
+	
+    <target name="compile" depends="prepare">
+        <javac srcdir="${src.dir}" 
+               destdir="${build.dir}/classes"
+               source="1.6"
+               target="1.6"
+               debug="true"
+               debuglevel="lines,vars,source"
+               classpathref="project.classpath"/>
+        <copy todir="${build.dir}/classes">
+            <fileset dir="${src.dir}" excludes="**/*.java"/>
+        </copy>
+    </target>
+	
+	<target name="jni" depends="dist">
+		<javah destdir="${jni.dir}" verbose="yes" old="no" force="yes" classpath="${build.dir}/${ant.project.name}.jar">
+		    <class name="org.ipc4j.sysv.semaphore.SysVSemaphoreAdapter"/>
+		    <class name="org.ipc4j.sysv.messagequeue.SysVMessageQueueAdapter"/>
+		    <class name="org.ipc4j.sysv.sharedmemory.SysVSharedMemoryAdapter"/>
+		</javah>
+	</target>
+	
+	<target name="cbuild" depends="jni">
+		<exec executable="make" dir="${jni.dir}"/>
+	</target>
+
+    <target name="dist" depends="compile">
+        <jar destfile="${build.dir}/${ant.project.name}.jar" 
+              basedir="${build.dir}/classes" />
+    </target>
+	
+	<target name="test">
+		<junit printsummary="yes" haltonfailure="yes">
+			<formatter type="plain"/>
+
+			<batchtest fork="yes" todir="${reports.tests}">
+		    	<fileset dir="${test.dir}">
+		      		<include name="**/*Test*.java"/>
+		    	</fileset>
+		  	</batchtest>
+		</junit>
+	</target>
+	
+	<target name="docs">
+		<javadoc sourcepath="${src.dir}" classpathref="project.classpath" destdir="${doc.dir}"/>
+	</target>
+
+	<target name="clean">
+        <delete dir="${build.dir}" />
+		<exec executable="make" dir="${jni.dir}">
+			<arg value="clean"/>
+		</exec>
+    </target>
+
+</project>
